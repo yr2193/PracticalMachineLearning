@@ -1,0 +1,66 @@
+---
+title: "Model for classification of human activities"
+output: html_document
+---
+
+## Introduction 
+
+This project provides a method to predict people's activities during exercise.
+The training and testing data come from this source: [http://groupware.les.inf.puc-rio.br/har](http://groupware.les.inf.puc-rio.br/har).
+
+## Data Processing
+
+1. Downloading data sets
+```{r echo =TRUE}
+library(RCurl)
+library(caret)
+library(randomForest)
+if(!file.exists("data")){dir.create("data")}
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile="./data/pm1train.csv", method = "curl")
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",destfile="./pm1test.csv", method="curl")
+train <- read.csv("./data/pm1train.csv",na.strings=c("NA", ""," "))
+test <- read.csv("./data/pm1test.csv",na.strings=c("NA","", " "))
+dim(train); dim(test)
+```
+
+Notice that there are 160 columns, further examination with summary() function shows that many of these columns contain significant amount of missing values, therefore, a cleaning step is necessary.
+
+2. Cleaning training and testing data
+
+Besides removing missing values, there are columns for identity information, such as index, names etc, those values are irrelevant and can be removed.
+```{r echo=TRUE}
+rmna <- apply(train, 2, function(x) sum(is.na(x)))
+traincl <- train[,(rmna==0)]
+testcl <- test[,(rmna==0)]
+dim(traincl); dim(testcl)
+# furthermore, remove lable columns, such as names, index, which are columns 1~7
+traincl <- traincl[,8:60]
+testcl <- testcl[,8:60]
+```
+
+## Model building and evaluation
+
+A random forest method is used to predict the activities classes. 
+```{r echo=TRUE}
+model <- randomForest(classe~., data=traincl)
+model
+```
+
+From the fitting data, the OOB error rate is 0.28%, in other words, the accuracy is 1-0.28%= 99.72%. You can also get the accuracy manually by adding up the numbers on the diagonal, which are correctly calculated by the method. 
+
+Since I use a random forest method, cross validation is no needed for this algorithm. Here is a very detailed link about [random forests](https://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr) in case you are interested.  
+
+## Predicting with test data
+
+Use the model built to predict on the test data. 
+```{r echo=TRUE}
+predtest <- predict(model, testcl)
+predtest
+```
+
+## Conclusion
+A random forest model is used to predict the activities classes for the 20 test data. The training data shows an accuracy of 99.72%.
+
+
+
+
